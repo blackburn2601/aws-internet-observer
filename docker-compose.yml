@@ -29,9 +29,11 @@ services:
       - .env
     labels:
       - "traefik.enable=true"
+      - "traefik.http.routers.monitor-secure.rule=Host(`int-observer.edv-wagner.com`)"
+      - "traefik.http.routers.monitor-secure.entrypoints=websecure"
+      - "traefik.http.routers.monitor-secure.tls.certresolver=le"
       - "traefik.http.routers.monitor.rule=Host(`int-observer.edv-wagner.com`)"
-      - "traefik.http.routers.monitor.entrypoints=websecure"
-      - "traefik.http.routers.monitor.tls.certresolver=le"
+      - "traefik.http.routers.monitor.entrypoints=web"
       # Service-Port innerhalb des Containers (gunicorn lauscht auf 5000)
       - "traefik.http.services.monitor.loadbalancer.server.port=5000"
     volumes:
