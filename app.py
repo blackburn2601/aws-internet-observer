@@ -5,6 +5,7 @@ import subprocess
 import socket
 from datetime import datetime
 from flask import Flask, request, jsonify, g
+from functools import wraps
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # --- CONFIG ---
@@ -61,12 +62,24 @@ def close_connection(exception):
         db.close()
 
 # --- API ENDPOINTS ---
-@app.route("/api/update-ip", methods=["POST"])
-def update_ip():
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer ") or auth.split(" ", 1)[1] != API_TOKEN:
-        return jsonify({"error": "unauthorized"}), 401
+def _auth_failed():
+    return jsonify({"error": "unauthorized"}), 401
 
+
+def require_token(f):
+    """Decorator to require the bearer token on API endpoints."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer ") or auth.split(" ", 1)[1] != API_TOKEN:
+            return _auth_failed()
+        return f(*args, **kwargs)
+    return wrapper
+
+
+@app.route("/ip/update", methods=["POST"])
+@require_token
+def update_ip():
     data = request.get_json(force=True, silent=True) or {}
     ip = data.get("ip") or request.remote_addr
     if not ip:
@@ -76,9 +89,10 @@ def update_ip():
     cur = db.cursor()
     cur.execute("INSERT OR REPLACE INTO ip_current (id, ip, updated_at) VALUES (1, ?, ?)", (ip, datetime.utcnow()))
     db.commit()
-    return jsonify({"ok": True, "ip": ip, "ts": datetime.utcnow().isoformat()}), 200
+    return jsonify({"ok": True, "ip": ip, "timestamp": datetime.utcnow().isoformat()}), 200
 
-@app.route("/status", methods=["GET"])
+@app.route("/ip/status", methods=["GET"])
+@require_token
 def status():
     db = get_db()
     cur = db.cursor()
@@ -94,7 +108,8 @@ def status():
         "last_check": dict(last) if last else None
     })
 
-@app.route("/history", methods=["GET"])
+@app.route("/ip/history", methods=["GET"])
+@require_token
 def history():
     db = get_db()
     cur = db.cursor()
