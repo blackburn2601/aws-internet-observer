@@ -2,11 +2,15 @@ services:
   traefik:
     image: traefik:v2.10
     command:
+      # Docker als Provider
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
+      # EntryPoints
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.le.acme.tlschallenge=true
+      # Let's Encrypt (TLS-ALPN / HTTP-01 über :80)
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
       - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
       - --log.level=INFO
@@ -25,15 +29,15 @@ services:
       - .env
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.monitor.rule=Host(`${MONITOR_DOMAIN}`)"
+      - "traefik.http.routers.monitor.rule=Host(`int-observer.edv-wagner.com`)"
       - "traefik.http.routers.monitor.entrypoints=websecure"
       - "traefik.http.routers.monitor.tls.certresolver=le"
+      # Service-Port innerhalb des Containers (gunicorn lauscht auf 5000)
       - "traefik.http.services.monitor.loadbalancer.server.port=5000"
     volumes:
+      # hier liegt app.py + monitor.db
       - monitor_data:/app
-      - monitor_db:/opt/monitor_db
     restart: unless-stopped
 
 volumes:
   monitor_data:
-  monitor_db:
