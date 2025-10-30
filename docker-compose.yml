@@ -1,0 +1,39 @@
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.tlschallenge=true
+      - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --log.level=INFO
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/acme.json:/letsencrypt/acme.json
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: monitor_app
+    env_file:
+      - .env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitor.rule=Host(`${MONITOR_DOMAIN}`)"
+      - "traefik.http.routers.monitor.entrypoints=websecure"
+      - "traefik.http.routers.monitor.tls.certresolver=le"
+      - "traefik.http.services.monitor.loadbalancer.server.port=5000"
+    volumes:
+      - monitor_data:/app
+      - monitor_db:/opt/monitor_db
+    restart: unless-stopped
+
+volumes:
+  monitor_data:
+  monitor_db:
