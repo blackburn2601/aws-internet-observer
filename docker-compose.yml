@@ -35,8 +35,9 @@ services:
       # Service-Port innerhalb des Containers (gunicorn lauscht auf 5000)
       - "traefik.http.services.monitor.loadbalancer.server.port=5000"
     volumes:
-      # hier liegt app.py + monitor.db
-      - monitor_data:/app
+      - monitor_data:/app/data
+    environment:
+      - DB_PATH=/app/data/monitor.db
     restart: unless-stopped
 
 volumes:

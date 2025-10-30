@@ -4,7 +4,10 @@ WORKDIR /app
 COPY requirements.txt /app/
 RUN apt-get update && apt-get install -y iputils-ping && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir -r requirements.txt
-COPY . /app
+
+# Create data directory for persistent storage
+RUN mkdir -p /app/data
+COPY app.py /app/
 
 EXPOSE 5000
 CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app", "--workers=2", "--threads=2"]
