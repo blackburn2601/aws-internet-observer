@@ -37,7 +37,7 @@ flowchart LR
         S[APScheduler<br/>every 60 s] --> A
     end
     U -- "POST /ip/update<br/>Bearer token" --> T
-    S -. "ICMP · TCP 80/443 · HTTP" .-> M[(current public IP)]
+    S -. "probes the reported IP:<br/>ICMP · TCP 80/443 · HTTP" .-> U
 ```
 
 ## Example
